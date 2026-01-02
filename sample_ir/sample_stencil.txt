@@ -1,0 +1,21 @@
+builtin.module {
+  func.func @laplace2d(%in: !stencil.field<[-1,65]x[-1,65]xf64>, %out: !stencil.field<[-1,65]x[-1,65]xf64>) {
+    %t = stencil.load %in : !stencil.field<[-1,65]x[-1,65]xf64> -> !stencil.temp<[-1,65]x[-1,65]xf64>
+    %apply = stencil.apply(%arg = %t : !stencil.temp<[-1,65]x[-1,65]xf64>) -> (!stencil.temp<[0,64]x[0,64]xf64>) {
+      %l = stencil.access %arg[-1, 0] : !stencil.temp<[-1,65]x[-1,65]xf64>
+      %r = stencil.access %arg[1, 0]  : !stencil.temp<[-1,65]x[-1,65]xf64>
+      %d = stencil.access %arg[0,-1]  : !stencil.temp<[-1,65]x[-1,65]xf64>
+      %u = stencil.access %arg[0, 1]  : !stencil.temp<[-1,65]x[-1,65]xf64>
+      %c = stencil.access %arg[0, 0]  : !stencil.temp<[-1,65]x[-1,65]xf64>
+      %s0 = arith.addf %l, %r : f64
+      %s1 = arith.addf %d, %u : f64
+      %sum = arith.addf %s0, %s1 : f64
+      %neg4 = arith.constant -4.0 : f64
+      %c2m = arith.mulf %c, %neg4 : f64
+      %lap = arith.addf %c2m, %sum : f64
+      stencil.return %lap : f64
+    }
+    stencil.store %apply to %out(<[0,0],[64,64]>) : !stencil.temp<[0,64]x[0,64]xf64> to !stencil.field<[-1,65]x[-1,65]xf64>
+    func.return
+  }
+}
