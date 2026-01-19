@@ -10,6 +10,7 @@ import argparse
 import subprocess
 from io import StringIO
 from xdsl.printer import Printer
+import os
 
 ctx = Context()
 ctx.load_dialect(builtin.Builtin)
@@ -93,6 +94,11 @@ gpu_passes = [
     "--cse"
 ]
 
+def dump_ir(ir_text: str, stage: int, pass_name: str, prefix="ir_dump"):
+    filename = f"{prefix}/{stage:02d}_{pass_name}.mlir"
+    with open(filename, "w") as f:
+        f.write(ir_text)
+    print(f"[IR dump] {filename}")
 
 
 
@@ -101,7 +107,10 @@ def main():
 
   print(xdsl.__file__)
 
-  device_type = "cpu"
+  device_type = "gpu"
+
+  os.makedirs("ir_dump", exist_ok=True)
+
 
   parser = argparse.ArgumentParser()
   parser.add_argument("--device", help="the device type you want to compile for")
@@ -139,12 +148,48 @@ def main():
   # Lower to target device with MLIR
   lowered_mlir = ""
   if device_type == "cpu":
-    result = subprocess.run(
-        ["mlir-opt", *cpu_passes],
-        input=mlir_text,
-        text=True,
-        capture_output=True,
-    )
+    current_ir = mlir_text
+    dump_ir(current_ir, 0, "after_xdsl_lowering")
+
+    for i, p in enumerate(cpu_passes, start=1):
+        result = subprocess.run(
+            ["mlir-opt", p],
+            input=current_ir,
+            text=True,
+            capture_output=True,
+        )
+
+        if result.returncode != 0:
+            print(f"Pass failed: {p}")
+            print(result.stderr)
+            exit(1)
+
+        current_ir = result.stdout
+        pass_name = p.replace("--", "").replace("=", "_")
+        dump_ir(current_ir, i, pass_name)
+  elif device_type == "gpu":
+    current_ir = mlir_text
+    dump_ir(current_ir, 0, "after_xdsl_lowering")
+
+    for i, p in enumerate(gpu_passes, start=1):
+        result = subprocess.run(
+            ["mlir-opt", p],
+            input=current_ir,
+            text=True,
+            capture_output=True,
+        )
+
+        if result.returncode != 0:
+            print(f"Pass failed: {p}")
+            print(result.stderr)
+            exit(1)
+
+        current_ir = result.stdout
+        pass_name = p.replace("--", "").replace("=", "_")
+        dump_ir(current_ir, i, pass_name)
+
+    lowered_mlir = current_ir
+
 
     print("=== STDOUT ===")
     print(result.stdout)
@@ -185,3 +230,4 @@ def main():
 
 if __name__ == "__main__":
   main()
+
