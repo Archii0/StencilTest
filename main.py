@@ -11,6 +11,9 @@ import subprocess
 from io import StringIO
 from xdsl.printer import Printer
 
+import pycuda.driver as cuda
+import pycuda.autoinit
+
 ctx = Context()
 ctx.load_dialect(builtin.Builtin)
 ctx.load_dialect(func.Func)
@@ -95,9 +98,23 @@ gpu_passes = [
 
 
 
-
-
 def main():
+
+  num_devices = cuda.Device.count()
+  print("Number of CUDA devices:", num_devices)
+
+  dev = cuda.Device(0)
+  major, minor = dev.compute_capability()
+  
+  sm_param = f"sm_{major}{minor}"
+
+  print("----- GPU DETECTED -----")
+  print(f"Device: {dev.name()}")
+  print(f"  Compute Capability: {major}.{minor}")
+  print(f"  SM version: {sm_param}")
+  print("-----------------------")
+
+  return
 
   print(xdsl.__file__)
 
