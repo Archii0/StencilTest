@@ -1,0 +1,6 @@
+{
+  "python.analysis.extraPaths": [
+    "/home/archie/llvm-project/build/tools/mlir/python_packages/mlir_core"
+  ],
+//   "python.defaultInterpreterPath": "/home/archie/.venv/mlirdev/bin/python"
+}
