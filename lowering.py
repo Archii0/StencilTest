@@ -120,20 +120,32 @@ def run_mlir_passes(
 
 
 def get_nvvm_target() -> str:
-    try:
-        import pycuda.driver as cuda
-        import pycuda.autoinit  # noqa: F401, runs automatically on import
-    except ModuleNotFoundError:
-        raise RuntimeError(
-            "PyCUDA is not installed. Install it with `pip install pycuda`.\n"
-            "Note: PyCUDA only works if you have an NVIDIA GPU and CUDA installed.\n"
-            "If you do not have an NVIDIA GPU, run the script again with '--device cpu'."
-        )
 
-    dev = cuda.Device(0)
-    major, minor = dev.compute_capability()
+    gpu_sm = os.environ.get("OPS_GPU_SM")
 
-    return f"chip=sm_{major}{minor},triple=nvptx64-nvidia-cuda"
+    if gpu_sm:
+        print(f"Detected GPU SM version from env variable: {gpu_sm}")
+    else:
+        print("GPU SM env variable not set, attempting auto detection")
+        try:
+            import pycuda.driver as cuda
+            import pycuda.autoinit  # noqa: F401, runs automatically on import
+
+            dev = cuda.Device(0)
+            major, minor = dev.compute_capability()
+            gpu_sm = f"{major}{minor}"
+
+            print(f"Automatically detected GPU SM version: {gpu_sm}")
+        except ModuleNotFoundError:
+            raise RuntimeError(
+                "PyCUDA is not installed. Install it with `pip install pycuda`.\n"
+                "Note: PyCUDA only works if you have an NVIDIA GPU and CUDA installed.\n"
+                "If you do not have an NVIDIA GPU, run the script again with '--device cpu'."
+            )
+        except cuda.Error as e:
+            raise RuntimeError(f"Failed to detect GPU compute capability: {e}")
+
+    return f"chip=sm_{gpu_sm},triple=nvptx64-nvidia-cuda"
 
 
 def get_pass_pipeline(device_type: str) -> List[str]:
