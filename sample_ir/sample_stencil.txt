@@ -1,6 +1,6 @@
 builtin.module {
   func.func @laplace2d(%in: !stencil.field<[-1,65]x[-1,65]xf64>, %out: !stencil.field<[-1,65]x[-1,65]xf64>) {
-    %t = stencil.load %in : !stencil.field<[-1,65]x[-1,65]xf64> -> !stencil.temp<[-1,65]x[-1,65]xf64>
+    %t = stencil.load %in : !stencil.field<[-1,65]x[-1,65]xf64> -> !stencil.temp<[0,64]x[0,64]xf64>
     %apply = stencil.apply(%arg = %t : !stencil.temp<[-1,65]x[-1,65]xf64>) -> (!stencil.temp<[0,64]x[0,64]xf64>) {
       %l = stencil.access %arg[-1, 0] : !stencil.temp<[-1,65]x[-1,65]xf64>
       %r = stencil.access %arg[1, 0]  : !stencil.temp<[-1,65]x[-1,65]xf64>
